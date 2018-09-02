@@ -431,9 +431,9 @@ test_tensors = paths_to_tensor(test_files).astype('float32')/255
 # 1. 你可以尝试自己搭建一个卷积网络的模型，那么你需要回答你搭建卷积网络的具体步骤（用了哪些层）以及为什么这样搭建。
 # 2. 你也可以根据上图提示的步骤搭建卷积网络，那么请说明为何如上的架构能够在该问题上取得很好的表现。
 # 
-# __回答:__ 选择2 根据上图提示搭建，该架构为3层卷积神经网络，即 INPUT -> [CONV -> RELU -> POOL]*3 -> FC -> SOFTMAX -> FC 的架构。我在输入层和每个[CONV -> RELU -> POOL]后加入了BatchNormalization，使得每一层的输出均值和方差相同， 为后层的神经网络提供更稳定的输入。
+# __回答:__ 选择2 根据上图提示搭建，该架构为3层卷积神经网络，即 INPUT -> [CONV(RELU) -> POOL -> BN]*3 -> GAP -> SOFTMAX -> FC 的架构。在输入层和每个[CONV(RELU) -> POOL]后加入了BatchNormalization，使得每一层的输出均值和方差接近， 为后层的神经网络提供更稳定的输入。
 # 
-# 每一卷积层Conv2D都使用了relu作为激活函数，与softmax相比，relu的计算代价更小。每个卷积层后都跟随一个池化层MaxPooling2D，向下采样去掉feature map中不重要的样本，从而减少参数数量降低计算代价。此处采用的是比较常见的Max Pooling，窗口大小为2，stride为2，使得输出尺寸为输入的一半，基本上可以检测到大部分的特征。 使用3个隐藏层的过滤器分别为16、32、64，可以帮助模型提取复杂的特征，以获得不同品种狗狗之间的差异，最后通过AveragePooling2D可以大量减少模型参数，降低过拟合的风险，同时显著降低计算成本，最后的全连接层使用SOFTMAX来预测狗狗属于133类中的哪一类。[cs231n](http://cs231n.github.io/convolutional-networks/#architectures)[why-does-batch-norm-work](https://www.coursera.org/lecture/deep-neural-network/why-does-batch-norm-work-81oTm)
+# 每一卷积层Conv2D都使用了relu作为激活函数，与sigmoid相比，relu的计算代价更小。每个卷积层后都跟随一个池化层，池化层可以综合全部邻居的反馈，此处采用的是比较常见的Max Pooling，窗口大小为2，stride为2，在保持输入的特征基本不变的情况下使得输出尺寸为输入的一半，大大减少参数数量并减轻了下一层的计算和统计负担。 使用3个隐藏层的过滤器分别为16、32、64，可以帮助模型提取复杂的特征，以获得不同品种狗狗之间的差异，然后通过AveragePooling2D可以大量减少模型参数，降低过拟合的风险，同时显著降低计算成本。最后的全连接层使用SOFTMAX来预测狗狗属于133类中的哪一类。[cs231n](http://cs231n.github.io/convolutional-networks/#architectures)[why-does-batch-norm-work](https://www.coursera.org/lecture/deep-neural-network/why-does-batch-norm-work-81oTm)
 
 # In[50]:
 
@@ -694,7 +694,7 @@ test_Xception = bottleneck_features4['test']
 # 在下方的代码块中尝试使用 Keras 搭建最终的网络架构，并回答你实现最终 CNN 架构的步骤与每一步的作用，并描述你在迁移学习过程中，使用该网络架构的原因。
 # 
 # 
-# __回答:__ 在如下的代码块中我分别尝试了VGG19、Resnet50、Inception和Xception四个训练模型来搭建一个CNN，这里我才用来冻结预训练模型的全部卷积层，只训练自己定制的全连接层的模式（即Transfer Learning），即以上模型的最后一层卷积层的输出被直接输入到我们的模型。在模型后，我们只需要添加一个全局平均池化层以及一个全连接层，其中全连接层使用 softmax 激活函数，对每一个狗的种类都包含一个节点。
+# __回答:__ 在如下的代码块中我分别尝试了VGG19、Resnet50、Inception和Xception四个训练模型来搭建一个CNN，这里我采用了冻结预训练模型的全部卷积层，只训练自己定制的全连接层的模式（即Transfer Learning），即以上模型的最后一层卷积层的输出被直接输入到我们的模型。在模型后，我们只需要添加一个全局平均池化层以及一个全连接层，其中全连接层使用 softmax 分类器，对每一个狗的种类都包含一个节点。
 # 
 # 这些预训练模型（VGG19、Resnet50、Inception和Xception）都使用了很多卷积和池化层在ImageNet上训练了很长时间，可以帮助我们提供我们的预测精度以及减少训练时间，如果继续添加卷积和池化层可能并不会提高预测的准确度，反而会增加训练的时间。
 # 

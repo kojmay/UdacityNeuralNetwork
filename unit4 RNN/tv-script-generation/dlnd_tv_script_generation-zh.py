@@ -159,7 +159,7 @@ helper.preprocess_and_save_data(data_dir, token_lookup, create_lookup_tables)
 # # 检查点
 # 这是你遇到的第一个检点。如果你想要回到这个 notebook，或需要重新打开 notebook，你都可以从这里开始。预处理的数据都已经保存完毕。
 
-# In[7]:
+# In[1]:
 
 
 """
@@ -184,7 +184,7 @@ int_text, vocab_to_int, int_to_vocab, token_dict = helper.load_preprocess()
 # 
 # ### 检查 TensorFlow 版本并访问 GPU
 
-# In[8]:
+# In[2]:
 
 
 """
@@ -215,7 +215,7 @@ else:
 # 
 # 返回下列元组中的占位符 `(Input, Targets, LearningRate)`
 
-# In[9]:
+# In[3]:
 
 
 def get_inputs():
@@ -247,11 +247,10 @@ tests.test_get_inputs(get_inputs)
 # 
 # 返回 cell 和下列元组中的初始状态 `(Cell, InitialState)`
 
-# In[10]:
+# In[4]:
 
 
 lstm_layers = 1
-keep_prob = 0.8
 def get_init_cell(batch_size, rnn_size):
     """
     Create an RNN Cell and initialize it.
@@ -260,9 +259,15 @@ def get_init_cell(batch_size, rnn_size):
     :return: Tuple (cell, initialize state)
     """
     # TODO: Implement Function
-    lstm_cell = tf.contrib.rnn.BasicLSTMCell(rnn_size)
-    drop = tf.contrib.rnn.DropoutWrapper(lstm_cell, output_keep_prob=keep_prob)
-    cell = tf.contrib.rnn.MultiRNNCell([drop]*lstm_layers)
+#     lstm_cell = tf.contrib.rnn.BasicLSTMCell(rnn_size)
+#     cell = tf.contrib.rnn.MultiRNNCell([lstm_cell]*lstm_layers)
+#     initial_state = cell.zero_state(batch_size, tf.float32)
+#     initial_state = tf.identity(initial_state, name='initial_state')
+
+    def make_lstm(rnn_size):
+        return tf.contrib.rnn.BasicLSTMCell(rnn_size)
+    
+    cell = tf.contrib.rnn.MultiRNNCell([make_lstm(rnn_size) for _ in range(lstm_layers)])
     initial_state = cell.zero_state(batch_size, tf.float32)
     initial_state = tf.identity(initial_state, name='initial_state')
     
@@ -279,7 +284,7 @@ tests.test_get_init_cell(get_init_cell)
 # 使用 TensorFlow 将嵌入运用到 `input_data` 中。
 # 返回嵌入序列。
 
-# In[11]:
+# In[5]:
 
 
 def get_embed(input_data, vocab_size, embed_dim):
@@ -312,7 +317,7 @@ tests.test_get_embed(get_embed)
 # 
 # 返回下列元组中的输出和最终状态`(Outputs, FinalState)`
 
-# In[12]:
+# In[6]:
 
 
 def build_rnn(cell, inputs):
@@ -361,7 +366,7 @@ def build_nn(cell, rnn_size, input_data, vocab_size, embed_dim):
     # TODO: Implement Function
     embed = get_embed(input_data, vocab_size, embed_dim)
     outputs, final_state = build_rnn(cell, embed)
-    logits = tf.contrib.layers.fully_connected(outputs, vocab_size, activation_fn=tf.sigmoid)
+    logits = tf.contrib.layers.fully_connected(outputs, vocab_size, activation_fn=None)
     
     
     return logits, final_state
@@ -450,19 +455,19 @@ tests.test_get_batches(get_batches)
 # - 将 `learning_rate` 设置为学习率。
 # - 将 `show_every_n_batches` 设置为神经网络应输出的程序组数量。
 
-# In[15]:
+# In[23]:
 
 
 # Number of Epochs
-num_epochs = 100
+num_epochs = 200
 # Batch Size
-batch_size = 256
+batch_size = 128
 # RNN Size
-rnn_size = 128
+rnn_size = 512
 # Embedding Dimension Size
-embed_dim = 200
+embed_dim = 1000
 # Sequence Length
-seq_length = 20
+seq_length = 12
 # Learning Rate
 learning_rate = 0.001
 # Show stats for every n number of batches
@@ -477,7 +482,7 @@ save_dir = './save'
 # ### 创建图表
 # 使用你实现的神经网络创建图表。
 
-# In[16]:
+# In[24]:
 
 
 """
@@ -514,7 +519,7 @@ with train_graph.as_default():
 # ## 训练
 # 在预处理数据中训练神经网络。如果你遇到困难，请查看这个[表格](https://discussions.udacity.com/)，看看是否有人遇到了和你一样的问题。
 
-# In[17]:
+# In[25]:
 
 
 """
@@ -553,7 +558,7 @@ with tf.Session(graph=train_graph) as sess:
 # ## 储存参数
 # 储存 `seq_length` 和 `save_dir` 来生成新的电视剧剧本。
 
-# In[18]:
+# In[26]:
 
 
 """
@@ -565,7 +570,7 @@ helper.save_params((seq_length, save_dir))
 
 # # 检查点
 
-# In[19]:
+# In[27]:
 
 
 """
@@ -591,7 +596,7 @@ seq_length, load_dir = helper.load_params()
 # 
 # 返回下列元组中的 tensor `(InputTensor, InitialStateTensor, FinalStateTensor, ProbsTensor)`
 
-# In[20]:
+# In[28]:
 
 
 def get_tensors(loaded_graph):
@@ -618,7 +623,7 @@ tests.test_get_tensors(get_tensors)
 # ### 选择词汇
 # 实现 `pick_word()` 函数来使用 `probabilities` 选择下一个词汇。
 
-# In[21]:
+# In[29]:
 
 
 def pick_word(probabilities, int_to_vocab):
@@ -643,7 +648,7 @@ tests.test_pick_word(pick_word)
 # ## 生成电视剧剧本
 # 这将为你生成一个电视剧剧本。通过设置 `gen_length` 来调整你想生成的剧本长度。
 
-# In[22]:
+# In[30]:
 
 
 gen_length = 200

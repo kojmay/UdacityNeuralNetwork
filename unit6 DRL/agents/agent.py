@@ -1,7 +1,7 @@
 import copy
 import random
 from collections import namedtuple, deque
-from keras import layers, models, optimizers
+from keras import layers, models, optimizers, regularizers
 from keras import backend as K
 import numpy as np
 
@@ -61,9 +61,15 @@ class Actor:
         states = layers.Input(shape=(self.state_size,), name='states')
 
         # Add hidden layers
-        net = layers.Dense(units=32, activation='relu')(states)
-        net = layers.Dense(units=64, activation='relu')(net)
-        net = layers.Dense(units=32, activation='relu')(net)
+        net = layers.Dense(units=32, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(states)
+        net = layers.BatchNormalization()(net)
+        net = layers.Dropout(0.5)(net)
+        net = layers.Dense(units=64, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(net)
+        net = layers.BatchNormalization()(net)
+        net = layers.Dropout(0.5)(net)
+        net = layers.Dense(units=32, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(net)
+        net = layers.BatchNormalization()(net)
+        net = layers.Dropout(0.5)(net)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 
@@ -85,7 +91,7 @@ class Actor:
         # Incorporate any additional losses here (e.g. from regularizers)
 
         # Define optimizer and training function
-        optimizer = optimizers.Adam()
+        optimizer = optimizers.Adam(lr=0.0001)
         updates_op = optimizer.get_updates(params=self.model.trainable_weights, loss=loss)
         self.train_fn = K.function(
             inputs=[self.model.input, action_gradients, K.learning_phase()],
@@ -117,12 +123,20 @@ class Critic:
         actions = layers.Input(shape=(self.action_size,), name='actions')
 
         # Add hidden layer(s) for state pathway
-        net_states = layers.Dense(units=32, activation='relu')(states)
-        net_states = layers.Dense(units=64, activation='relu')(net_states)
+        net_states = layers.Dense(units=32, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01) , activation='relu')(states)
+        net_states = layers.BatchNormalization()(net_states)
+        net_states = layers.Dropout(0.5)(net_states)
+        net_states = layers.Dense(units=64, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(net_states)
+        net_states = layers.BatchNormalization()(net_states)
+        net_states = layers.Dropout(0.5)(net_states)
 
         # Add hidden layer(s) for action pathway
-        net_actions = layers.Dense(units=32, activation='relu')(actions)
-        net_actions = layers.Dense(units=64, activation='relu')(net_actions)
+        net_actions = layers.Dense(units=32, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(actions)
+        net_actions = layers.BatchNormalization()(net_actions)
+        net_actions = layers.Dropout(0.5)(net_actions)
+        net_actions = layers.Dense(units=64, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(net_actions)
+        net_actions = layers.BatchNormalization()(net_actions)
+        net_actions = layers.Dropout(0.5)(net_actions)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 
@@ -139,7 +153,7 @@ class Critic:
         self.model = models.Model(inputs=[states, actions], outputs=Q_values)
 
         # Define optimizer and compile model for training with built-in loss function
-        optimizer = optimizers.Adam()
+        optimizer = optimizers.Adam(lr=0.001)
         self.model.compile(optimizer=optimizer, loss='mse')
 
         # Compute action gradients (derivative of Q values w.r.t. to actions)
@@ -179,20 +193,21 @@ class DDPG():
 
         # Replay memory
         self.buffer_size = 100000
-        self.batch_size = 128
+        self.batch_size = 64
         self.memory = ReplayBuffer(self.buffer_size, self.batch_size)
 
         # Algorithm parameters
         self.gamma = 0.99  # discount factor
-        self.tau = 0.01  # for soft update of target parameters
+        self.tau = 0.001  # for soft update of target parameters
+        
+        self.best_score = -np.inf
         
         # Episode variables
-        self.episode_duration = 0
-        self.total_reward = 0
-        self.score = None
-        self.best_score = -np.inf
+        self.reset_episode()
 
     def reset_episode(self):
+        self.count = 0
+        self.total_reward = 0
         self.noise.reset()
         state = self.task.reset()
         self.last_state = state
@@ -200,11 +215,9 @@ class DDPG():
 
     def step(self, action, reward, next_state, done):
         self.total_reward += reward
-        self.episode_duration += 1
-        self.score = self.total_reward / float(self.episode_duration)
+        self.count += 1
+        self.score = self.total_reward / float(self.count) if self.count else 0.0
         self.best_score = max(self.score, self.best_score)
-        
-        
         
          # Save experience / reward
         self.memory.add(self.last_state, action, reward, next_state, done)

@@ -61,15 +61,9 @@ class Actor:
         states = layers.Input(shape=(self.state_size,), name='states')
 
         # Add hidden layers
-        net = layers.Dense(units=32, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(states)
-        net = layers.BatchNormalization()(net)
-        net = layers.Dropout(0.5)(net)
-        net = layers.Dense(units=64, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(net)
-        net = layers.BatchNormalization()(net)
-        net = layers.Dropout(0.5)(net)
-        net = layers.Dense(units=32, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(net)
-        net = layers.BatchNormalization()(net)
-        net = layers.Dropout(0.5)(net)
+        net = layers.Dense(units=100, activation='relu')(states)
+        net = layers.Dense(units=200, activation='relu')(net)
+        net = layers.Dense(units=100, activation='relu')(net)
 
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 
@@ -123,21 +117,13 @@ class Critic:
         actions = layers.Input(shape=(self.action_size,), name='actions')
 
         # Add hidden layer(s) for state pathway
-        net_states = layers.Dense(units=32, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01) , activation='relu')(states)
-        net_states = layers.BatchNormalization()(net_states)
-        net_states = layers.Dropout(0.5)(net_states)
-        net_states = layers.Dense(units=64, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(net_states)
-        net_states = layers.BatchNormalization()(net_states)
-        net_states = layers.Dropout(0.5)(net_states)
-
+        net_states = layers.Dense(units=100, activation='relu')(states)
+        net_states = layers.Dense(units=200, activation='relu')(net_states)
+        
         # Add hidden layer(s) for action pathway
-        net_actions = layers.Dense(units=32, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(actions)
-        net_actions = layers.BatchNormalization()(net_actions)
-        net_actions = layers.Dropout(0.5)(net_actions)
-        net_actions = layers.Dense(units=64, kernel_regularizer = regularizers.l2(0.01), activity_regularizer = regularizers.l1(0.01), activation='relu')(net_actions)
-        net_actions = layers.BatchNormalization()(net_actions)
-        net_actions = layers.Dropout(0.5)(net_actions)
-
+        net_actions = layers.Dense(units=100, activation='relu')(actions)
+        net_actions = layers.Dense(units=200, activation='relu')(net_actions)
+        
         # Try different layer sizes, activations, add batch normalization, regularizers, etc.
 
         # Combine state and action pathways
@@ -198,7 +184,7 @@ class DDPG():
 
         # Algorithm parameters
         self.gamma = 0.99  # discount factor
-        self.tau = 0.001  # for soft update of target parameters
+        self.tau = 0.01  # for soft update of target parameters
         
         self.best_score = -np.inf
         
